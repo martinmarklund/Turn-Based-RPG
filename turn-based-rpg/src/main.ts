@@ -1,29 +1,21 @@
-import Phaser from "phaser";
-import { loadTileMap, createTiles } from "./utils/tileMapUtils";
+import GameManager from "./objects/gameManager";
+import SceneConfig from "./objects/sceneConfig";
 
-const config: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO, // Phaser.AUTO allows Phaser to choose between WebGL and Canvas based on the browser's capabilities.
-  width: 800,
-  height: 608,
-  scene: {
-    preload: preload,
-    create: create,
-    update: update,
-  },
-};
+import CreditsScene from "./scenes/creditsScene";
+import MainMenuScene from "./scenes/mainMenuScene";
+import MainScene from "./scenes/mainScene";
 
-const game = new Phaser.Game(config);
+// Game config goes here
+const height = 608;
+const width = 800;
 
-function preload(this: Phaser.Scene) {
-  // Load assets here
-  loadTileMap(this);
-}
+// Create scenes and scene array
+const creditsSceneConfig = new SceneConfig(new CreditsScene(), "Credits");
+const mainMenuSceneConfig = new SceneConfig(new MainMenuScene(), "MainMenu");
+const mainSceneConfig = new SceneConfig(new MainScene(), "MainScene");
+const sceneConfigs = [creditsSceneConfig, mainMenuSceneConfig, mainSceneConfig];
 
-function create(this: Phaser.Scene) {
-  // Initialize game objects here
-  createTiles(this);
-}
+// Start game
+const gameManager = new GameManager(height, width, sceneConfigs);
 
-function update() {
-  // Game logic goes here
-}
+gameManager.startScene("MainMenu");
