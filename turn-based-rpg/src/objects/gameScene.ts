@@ -14,5 +14,5 @@ export default class GameScene extends Phaser.Scene {
 
   create() {}
 
-  update(time: number) {}
+  update(_time: number) {}
 }

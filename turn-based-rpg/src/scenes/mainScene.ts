@@ -9,7 +9,7 @@ export default class MainScene extends GameScene {
   private player!: Player;
 
   constructor() {
-    const grid = new Grid(50, 38);
+    const grid = new Grid(50, 38, 16);
     super("MainScene", grid);
   }
 
@@ -22,9 +22,13 @@ export default class MainScene extends GameScene {
   }
 
   create(): void {
-    const gridSize = 16;
-    createTiles(this, this.grid.width, this.grid.height, gridSize);
-    this.player = new Player(this, 100, 100, gridSize);
+    createTiles(this, this.grid, 3);
+    this.player = new Player(
+      this,
+      this.grid,
+      this.grid.cols / 2,
+      this.grid.rows / 2
+    );
   }
 
   update(time: number): void {

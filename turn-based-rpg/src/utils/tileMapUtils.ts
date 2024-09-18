@@ -1,3 +1,5 @@
+import Grid from "../objects/tile";
+
 export function loadTileMap(scene: Phaser.Scene) {
   scene.load.spritesheet("tiles", "assets/tilemap.png", {
     frameWidth: 16,
@@ -5,17 +7,54 @@ export function loadTileMap(scene: Phaser.Scene) {
   });
 }
 
+enum TileType {
+  LeftEdge,
+  LeftTopCorner,
+  TopEdge,
+  RightTopCorner,
+  RightEdge,
+  RightBotCorner,
+  BotEdge,
+  LeftBotCorner,
+  Normal,
+  Water,
+  ShorelineLeft,
+  ShorelineTop,
+  ShorelineRight,
+}
+
+const tileTypeToIndexMap: { [key in TileType]: number } = {
+  [TileType.LeftTopCorner]: 0,
+  [TileType.LeftEdge]: 16,
+  [TileType.LeftBotCorner]: 64,
+  [TileType.TopEdge]: 1,
+  [TileType.RightTopCorner]: 2,
+  [TileType.RightEdge]: 18,
+  [TileType.RightBotCorner]: 69,
+  [TileType.BotEdge]: 52,
+  [TileType.Water]: 81,
+  [TileType.Normal]: 17,
+  [TileType.ShorelineLeft]: 82,
+  [TileType.ShorelineTop]: 99,
+  [TileType.ShorelineRight]: 80,
+};
+
+/**
+ * Creates a tilemap for a scene and fills it with tiles.
+ * @param scene - Scene object for which the tilemap is created.
+ * @param grid - Grid that the tilemap is based on.
+ * @param padding - Decides the padding of the map. Tiles within the padding will be water.
+ */
 export function createTiles(
   scene: Phaser.Scene,
-  cols: number,
-  rows: number,
-  size: number
-) {
+  grid: Grid,
+  padding: number
+): void {
   const map = scene.make.tilemap({
-    width: cols,
-    height: rows,
-    tileWidth: size,
-    tileHeight: size,
+    width: grid.cols,
+    height: grid.rows,
+    tileWidth: grid.size,
+    tileHeight: grid.size,
   });
 
   const tileset = map.addTilesetImage("tiles");
@@ -30,75 +69,69 @@ export function createTiles(
     return;
   }
 
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      const tileType = getTileType(x, y, cols, rows);
-      let tileIndex = 7;
+  for (let y = 0; y < grid.rows; y++) {
+    for (let x = 0; x < grid.cols; x++) {
+      const tileType = getTileType(x, y, grid.cols, grid.rows, padding);
+      const tileIndex = tileTypeToIndexMap[tileType];
       switch (tileType) {
-        case TileType.LeftTopCorner:
-          tileIndex = 0;
+        case TileType.Normal:
+          grid.setWalkable(x, y, true);
           break;
-        case TileType.LeftEdge:
-          tileIndex = 16;
-          break;
-        case TileType.LeftBotCorner:
-          tileIndex = 64;
-          break;
-        case TileType.TopEdge:
-          tileIndex = 1;
-          break;
-        case TileType.RightTopCorner:
-          tileIndex = 2;
-          break;
-        case TileType.RightEdge:
-          tileIndex = 18;
-          break;
-        case TileType.RightBotCorner:
-          tileIndex = 69;
-          break;
-        case TileType.BotEdge:
-          tileIndex = 52;
-          break;
-        default: // Normal
-          tileIndex = 17;
+        default:
+          grid.setWalkable(x, y, false);
           break;
       }
-
       layer.putTileAt(tileIndex, x, y);
     }
   }
 }
 
-function getTileType(x: number, y: number, width: number, height: number) {
-  if (x === 0 && y === 0) {
+function getTileType(
+  x: number,
+  y: number,
+  cols: number,
+  rows: number,
+  padding: number
+) {
+  if (
+    x < padding ||
+    x >= cols - padding ||
+    y < padding ||
+    y >= rows - padding
+  ) {
+    if (x === padding - 1 && y >= padding && y < rows - padding) {
+      return TileType.ShorelineLeft;
+    } else if (x === cols - padding && y >= padding && y < rows - padding - 1) {
+      return TileType.ShorelineRight;
+    } else if (y === padding - 1 && x >= padding && x < cols - padding) {
+      return TileType.ShorelineTop;
+    } else {
+      return TileType.Water;
+    }
+  }
+
+  const isLeftEdge = x === padding;
+  const isRightEdge = x === cols - padding - 1;
+  const isTopEdge = y === padding;
+  const isBottomEdge = y === rows - padding - 1;
+
+  if (isLeftEdge && isTopEdge) {
     return TileType.LeftTopCorner;
-  } else if (x === 0 && y === height - 1) {
+  } else if (isLeftEdge && isBottomEdge) {
     return TileType.LeftBotCorner;
-  } else if (x === 0 && (y !== 0 || y !== height - 1)) {
-    return TileType.LeftEdge;
-  } else if (x !== 0 && x !== width - 1 && y === 0) {
-    return TileType.TopEdge;
-  } else if (x === width - 1 && y === 0) {
+  } else if (isRightEdge && isTopEdge) {
     return TileType.RightTopCorner;
-  } else if (x === width - 1 && y === height - 1) {
+  } else if (isRightEdge && isBottomEdge) {
     return TileType.RightBotCorner;
-  } else if (x === width - 1 && (y !== 0 || y !== height - 1)) {
+  } else if (isLeftEdge) {
+    return TileType.LeftEdge;
+  } else if (isRightEdge) {
     return TileType.RightEdge;
-  } else if (x !== 0 && x !== width - 1 && y === height - 1) {
+  } else if (isTopEdge) {
+    return TileType.TopEdge;
+  } else if (isBottomEdge) {
     return TileType.BotEdge;
   } else {
     return TileType.Normal;
   }
-}
-
-enum TileType {
-  LeftEdge,
-  LeftTopCorner,
-  TopEdge,
-  RightTopCorner,
-  RightEdge,
-  RightBotCorner,
-  BotEdge,
-  LeftBotCorner,
-  Normal,
 }
